@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession
 
-from pyspark.ml.feature import StringIndexer
+from pyspark.ml.feature import StringIndexer, VectorAssembler
+from pyspark.ml.linalg import Vectors
 
 spark = SparkSession.builder.appName("heart_disease").getOrCreate()
 
@@ -16,5 +17,17 @@ droped = df.dropna()
 #count rows after drop null rows
 print(droped .count())
 
+#replace categorical columns with numeric columns
 indexer = StringIndexer(inputCols=["sex", "is_smoking"], outputCols=["sex_cat","is_smoking_cat"])
 indexed = indexer.fit(droped).transform(droped)
+
+#create features Vector
+assembler = VectorAssembler(inputCols=['age', 'education', 'cigsPerDay', 'BPMeds', 'prevalentStroke',
+                             'prevalentHyp', 'diabetes', 'totChol', 'sysBP', 'diaBP', 'BMI',
+                             'heartRate', 'glucose', 'sex_cat', 'is_smoking_cat'],
+                            outputCol="features")
+output = assembler.transform(indexed)
+output.select("features", "TenYearCHD").show()
+
+
+
