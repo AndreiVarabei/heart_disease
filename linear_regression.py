@@ -1,3 +1,5 @@
+from pyspark import Row
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import corr
 
@@ -55,3 +57,20 @@ print(prediction_results.rootMeanSquaredError)
 # The most correlation column with TenYearCHD
 indexed.select(corr(col1='TenYearCHD', col2='age')).show()
 
+# test with real data
+print(indexed.head(2)[0])
+real_data = [Row(age=29, education=4.0,cigsPerDay=0.0, BPMeds=0.0, prevalentStroke=0,
+                prevalentHyp=1, diabetes=0, totChol=250.0, sysBP=130.0, diaBP=80.0,
+                BMI=26.2, heartRate=72.0, glucose=87, sex_cat=1.0, is_smoking_cat=0.0),
+             Row(age=64, education=4.0,cigsPerDay=10.0, BPMeds=1.0, prevalentStroke=1,
+                prevalentHyp=1, diabetes=1, totChol=300.0, sysBP=146.0, diaBP=90.0,
+                BMI=37.0, heartRate=100.0, glucose=190, sex_cat=1.0, is_smoking_cat=1.0),
+             ]
+real_df = spark.createDataFrame(real_data)
+transform_real_data = assembler.transform(real_df)
+real_data = transform_real_data.select(["features"])
+
+real_prediction = trained_disease_model.transform(real_data)
+real_prediction.show()
+
+spark.stop()
