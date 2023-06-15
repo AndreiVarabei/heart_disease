@@ -1,4 +1,5 @@
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import corr
 
 from pyspark.ml.feature import StringIndexer, VectorAssembler
 from pyspark.ml.regression import LinearRegression
@@ -43,8 +44,14 @@ trained_disease_model = disease_lr.fit(train_data)
 
 prediction_results = trained_disease_model.evaluate(test_data)
 
-prediction_results.residuals.show()
+#check results
 
+prediction_results.residuals.show(50)
 
+print(prediction_results.r2)
 
+print(prediction_results.rootMeanSquaredError)
+
+# The most correlation column with TenYearCHD
+indexed.select(corr(col1='TenYearCHD', col2='age')).show()
 
