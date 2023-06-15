@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 
 from pyspark.ml.feature import StringIndexer, VectorAssembler
-from pyspark.ml.linalg import Vectors
+from pyspark.ml.regression import LinearRegression
 
 spark = SparkSession.builder.appName("heart_disease").getOrCreate()
 
@@ -15,7 +15,7 @@ print(df.count())
 droped = df.dropna()
 
 #count rows after drop null rows
-print(droped .count())
+print(droped.count())
 
 #replace categorical columns with numeric columns
 indexer = StringIndexer(inputCols=["sex", "is_smoking"], outputCols=["sex_cat","is_smoking_cat"])
@@ -27,7 +27,24 @@ assembler = VectorAssembler(inputCols=['age', 'education', 'cigsPerDay', 'BPMeds
                              'heartRate', 'glucose', 'sex_cat', 'is_smoking_cat'],
                             outputCol="features")
 output = assembler.transform(indexed)
-output.select("features", "TenYearCHD").show()
+final_data = output.select(["features", "TenYearCHD"])
+
+#divide the data to train and test data and check distribution
+train_data, test_data = final_data.randomSplit([0.7, 0.3])
+
+train_data.describe().show()
+
+test_data.describe().show()
+
+# train data and evaluete test data
+disease_lr = LinearRegression(labelCol="TenYearCHD")
+
+trained_disease_model = disease_lr.fit(train_data)
+
+prediction_results = trained_disease_model.evaluate(test_data)
+
+prediction_results.residuals.show()
+
 
 
 
