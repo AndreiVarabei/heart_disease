@@ -4,8 +4,9 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import corr
 
 from pyspark.ml.feature import StringIndexer, VectorAssembler
-from pyspark.ml.classification import LogisticRegression
-from pyspark.ml.evaluation import BinaryClassificationEvaluator
+from pyspark.ml.classification import LogisticRegression, DecisionTreeClassifier,\
+                                      RandomForestClassifier, GBTClassifier
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 
 spark = SparkSession.builder.appName("heart_disease").getOrCreate()
 
@@ -42,15 +43,32 @@ test_data.describe().show()
 
 # train data and evaluete test data
 disease_ls = LogisticRegression(featuresCol='features', labelCol="TenYearCHD")
+disease_dt = DecisionTreeClassifier(featuresCol='features', labelCol="TenYearCHD")
+disease_rf = RandomForestClassifier(featuresCol='features', labelCol="TenYearCHD", numTrees=150)
+disease_gb = GBTClassifier(featuresCol='features', labelCol="TenYearCHD")
 
-trained_disease_model = disease_ls.fit(train_data)
+trained_disease_model_ls = disease_ls.fit(train_data)
+trained_disease_model_dt = disease_dt.fit(train_data)
+trained_disease_model_rf = disease_rf.fit(train_data)
+trained_disease_model_gb = disease_gb.fit(train_data)
 
-prediction_results = trained_disease_model.transform(test_data)
+prediction_results_ls = trained_disease_model_ls.transform(test_data)
+prediction_results_dt = trained_disease_model_dt.transform(test_data)
+prediction_results_rf = trained_disease_model_rf.transform(test_data)
+prediction_results_gb = trained_disease_model_gb.transform(test_data)
 
-#check results
+#Check accuracy (tp+tn)/total
+eval_accuracy = MulticlassClassificationEvaluator(predictionCol='prediction', labelCol='TenYearCHD',
+                                                  metricName="accuracy")
 
-eval = BinaryClassificationEvaluator(rawPredictionCol='prediction', labelCol='TenYearCHD')
-print(eval.evaluate(prediction_results))
+print('Logistic regression:', eval_accuracy.evaluate(prediction_results_ls))
+
+print('Decision tree:', eval_accuracy.evaluate(prediction_results_dt))
+
+print('Random forest:', eval_accuracy.evaluate(prediction_results_rf))
+
+print('Gradient boosting:', eval_accuracy.evaluate(prediction_results_gb))
+
 
 # The most correlation column with TenYearCHD
 indexed.select(corr(col1='TenYearCHD', col2='age')).show()
@@ -67,7 +85,20 @@ real_df = spark.createDataFrame(real_data)
 transform_real_data = assembler.transform(real_df)
 real_data = transform_real_data.select(["features"])
 
-real_prediction = trained_disease_model.transform(real_data)
-real_prediction.show()
+# Logistic regression:
+real_prediction_ls = trained_disease_model_ls.transform(real_data)
+real_prediction_ls.show()
+
+#Decision tree:
+real_prediction_dt = trained_disease_model_dt.transform(real_data)
+real_prediction_dt.show()
+
+#Random forest:
+real_prediction_rf = trained_disease_model_rf.transform(real_data)
+real_prediction_rf.show()
+
+# Gradient boosting:
+real_prediction_gb = trained_disease_model_gb.transform(real_data)
+real_prediction_gb.show()
 
 spark.stop()
